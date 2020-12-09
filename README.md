@@ -1,4 +1,4 @@
-# 6k-PBMCs-from-a-Healthy-Donor
+# Single Cell RNA Sequencing Data Analysis
 
 This project analyzes Single Cell Gene Expression dataset, downloaded from the 10X Genomics dataset https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc6k? 
 

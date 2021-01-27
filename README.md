@@ -1,4 +1,4 @@
-# Single Cell RNA Sequencing Data Analysis
+# Clustering of Single Cells
 
 This project re-analyzes the publicly available 10X Genomics Single Cell RNA Sequencing dataset, which can be found at https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k. This project clusters single cells isolated from a healthy donor. This technique can be used to cluster cells for different experimental conditions and cohorts.      
 

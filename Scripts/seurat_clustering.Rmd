@@ -1,0 +1,144 @@
+---
+title: "Seurat Clustering tutorial"
+author: "Poromendro Nath Burman"
+date: "1/25/2021"
+output: html_document
+---
+
+**1. Import libraries**
+```{r}
+library(dplyr)
+library(Seurat)
+library(patchwork)
+```
+
+**2. Import dataset**
+```{r}
+# load the dataset
+pbmc.data <- Read10X(data.dir = "./filtered_gene_bc_matrices/hg19/")
+
+# create seurat object
+pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
+
+# remove pbmc.data
+rm(pbmc.data)
+```
+
+**3. Mitochondrial genes**
+```{r}
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "MT-")
+```
+
+**4. QC visualization**
+
+**a) UMI counts**
+```{r}
+VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+**b) Feature-feature relationships**
+```{r}
+FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt") + FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+```
+**5. Filtering of cells**
+
+# Based upon the Violin and feature scatter plots, we filter for cells that have 
+# feature counts over 2,500 or less than 200 and >5% mitochondrial counts
+
+```{r}
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+```
+
+**6. Normalization**
+```{r}
+pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
+```
+
+**7. Feature selection**
+```{r}
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+
+# identify top 10 most highly variable genes
+top10 <- head(VariableFeatures(pbmc), 10)
+
+# plot variable features
+VariableFeaturePlot(pbmc)
+```
+
+**8. Scaling the data**
+```{r}
+all.genes <- rownames(pbmc)
+
+pbmc <- ScaleData(pbmc, features = all.genes)
+```
+
+**9. Dimensional Reduction**
+
+**a) Linear**
+
+# calculate PCA
+```{r}
+pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+```
+
+# PCA visualization
+```{r}
+print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
+```
+
+```{r}
+VizDimLoadings(pbmc, dims = 1:2, reduction = "pca")
+```
+```{r}
+DimPlot(pbmc, reduction = "pca")
+```
+# heatmap
+```{r}
+DimHeatmap(pbmc, dims = 1:5, cells = 500, balanced = TRUE)
+```
+# determining dimensionality
+```{r}
+ElbowPlot(pbmc)
+```
+# Clustering
+```{r}
+pbmc <- FindNeighbors(pbmc, dims = 1:10)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+```
+
+**b) Non-Linear**
+
+```{r}
+pbmc <- RunUMAP(pbmc, dims = 1:10)
+DimPlot(pbmc, reduction = "umap")
+```
+
+**c) differentially expressed genes**
+
+# markers of cluster 1
+```{r}
+cluster1.markers <- FindMarkers(pbmc, ident.1 = 1, min.pct = 0.25)
+head(cluster1.markers, n = 5)
+```
+# markers distinguishing cluster 5 from clusters 0 and 3
+```{r}
+cluster5.markers <- FindMarkers(pbmc, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
+head(cluster5.markers, n = 5)
+```
+
+# find markers for every cluster compared to remaining cells
+```{r}
+pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+```
+
+# Plot top 20 markers
+```{r}
+top10 <- pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+DoHeatmap(pbmc, features = top10$gene) + NoLegend()
+```
+
+
+
+
